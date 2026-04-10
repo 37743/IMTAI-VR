@@ -1,0 +1,4 @@
+repository "VR Industrial Training/VR Industrial Training@11270314260505@cloud"
+  path "/"
+    br "/main"
+    co "/main"
