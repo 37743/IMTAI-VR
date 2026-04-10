@@ -6,8 +6,8 @@
 /VR Industrial Training/[Bb]uilds/
 /VR Industrial Training/[Ll]ogs/
 /VR Industrial Training/[Uu]ser[Ss]ettings/
-/VR Industrial Training/_[Rr]endering/Models/STT/
-/VR Industrial Training/_[Rr]endering/Models/TTS/
+/VR Industrial Training/Assets/_[Rr]endering/Models/STT/
+/VR Industrial Training/Assets/_[Rr]endering/Models/TTS/
 
 *.log
 
