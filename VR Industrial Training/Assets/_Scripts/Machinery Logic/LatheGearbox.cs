@@ -55,55 +55,59 @@ public class LatheGearbox
         }
     }
 
-    int GetGearIndex(bool s1,bool s2,bool s3,bool s4)
+    public float GetRPM(
+        Range range,
+        LatheMachineManager.SpindleSpeedLeverPosition spindleSpeedLever)
     {
-        int index=0;
+        int index = Mathf.Clamp((int)spindleSpeedLever, 0, 3);
 
-        if(s1) index|=1;
-        if(s2) index|=2;
-        if(s3) index|=4;
-        if(s4) index|=8;
-
-        return index;
-    }
-
-    public float GetRPM(Range range,bool s1,bool s2,bool s3,bool s4)
-    {
-        int index=GetGearIndex(s1,s2,s3,s4);
-
-        if(range==Range.Low)
+        if (range == Range.Low)
             return lowRange[index].rpm;
 
         return highRange[index].rpm;
     }
 
-    public float GetFeedPerRev(Range range,bool s1,bool s2,bool s3,bool s4)
+    public float GetFeedPerRev(
+        LatheMachineManager.GearSelectorAB gearAB,
+        LatheMachineManager.GearSelector1234 gear1234,
+        LatheMachineManager.GearSelectorCD gearCD,
+        LatheMachineManager.GearSelectorRSTU gearRSTU)
     {
-        int index=GetGearIndex(s1,s2,s3,s4);
-
-        if(range==Range.Low)
-            return lowRange[index].feedPerRev;
-
-        return highRange[index].feedPerRev;
+        int index = GetPanelGearIndex(gearAB, gear1234, gearCD, gearRSTU);
+        return 0.02f + index * 0.005f;
     }
 
-    public float GetThreadPitchMetric(Range range,bool s1,bool s2,bool s3,bool s4)
+    public float GetThreadPitchMetric(
+        LatheMachineManager.GearSelectorAB gearAB,
+        LatheMachineManager.GearSelector1234 gear1234,
+        LatheMachineManager.GearSelectorCD gearCD,
+        LatheMachineManager.GearSelectorRSTU gearRSTU)
     {
-        int index=GetGearIndex(s1,s2,s3,s4);
-
-        if(range==Range.Low)
-            return lowRange[index].threadPitchMetric;
-
-        return highRange[index].threadPitchMetric;
+        int index = GetPanelGearIndex(gearAB, gear1234, gearCD, gearRSTU);
+        return 0.25f + index * 0.125f;
     }
 
-    public float GetThreadPitchInch(Range range,bool s1,bool s2,bool s3,bool s4)
+    public float GetThreadPitchInch(
+        LatheMachineManager.GearSelectorAB gearAB,
+        LatheMachineManager.GearSelector1234 gear1234,
+        LatheMachineManager.GearSelectorCD gearCD,
+        LatheMachineManager.GearSelectorRSTU gearRSTU)
     {
-        int index=GetGearIndex(s1,s2,s3,s4);
+        int index = GetPanelGearIndex(gearAB, gear1234, gearCD, gearRSTU);
+        return Mathf.Max(4f, 32f - index);
+    }
 
-        if(range==Range.Low)
-            return lowRange[index].threadPitchInch;
-
-        return highRange[index].threadPitchInch;
+    private int GetPanelGearIndex(
+        LatheMachineManager.GearSelectorAB gearAB,
+        LatheMachineManager.GearSelector1234 gear1234,
+        LatheMachineManager.GearSelectorCD gearCD,
+        LatheMachineManager.GearSelectorRSTU gearRSTU)
+    {
+        int index = 0;
+        index += (int)gear1234;
+        index += (int)gearRSTU * 4;
+        index += (int)gearCD * 16;
+        index += (int)gearAB * 32;
+        return index;
     }
 }

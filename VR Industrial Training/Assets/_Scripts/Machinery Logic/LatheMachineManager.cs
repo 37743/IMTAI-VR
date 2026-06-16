@@ -2,14 +2,99 @@ using UnityEngine;
 
 public class LatheMachineManager : MonoBehaviour
 {
+    public enum SpindleSpeedLeverPosition
+    {
+        Low190High1255 = 0,
+        Low300High2000 = 1,
+        Low115High755 = 2,
+        Low70High460 = 3
+    }
+
+    public enum GearSelectorAB
+    {
+        A = 0,
+        B = 1
+    }
+
+    public enum GearSelector1234
+    {
+        One = 0,
+        Two = 1,
+        Three = 2,
+        Four = 3
+    }
+
+    public enum GearSelectorCD
+    {
+        C = 0,
+        D = 1
+    }
+
+    public enum GearSelectorRSTU
+    {
+        R = 0,
+        S = 1,
+        T = 2,
+        U = 3
+    }
+
+    public enum TransmissionState
+    {
+        Neutral = 0,
+        Spindle = 1,
+        Feed = 2,
+        Thread = 3
+    }
+
+    public enum DirectionState
+    {
+        Reverse = -1,
+        Neutral = 0,
+        Forward = 1
+    }
+
     public static LatheMachineManager Instance;
+
+    [Header("Setup")]
+    public bool autoFindReferencesByName = true;
+    public bool captureHomePositionsOnAwake = true;
+    public bool resetPositionValuesWhenCapturingHome = true;
+    public bool applyScreenshotDefaultsOnAwake = true;
+
+    [Header("Control Panel State")]
+    [Tooltip("Top speed range lever. Blue row is low range, red row is high range.")]
+    public LatheGearbox.Range panelSpeedRange = LatheGearbox.Range.Low;
+
+    [Tooltip("Large top spindle speed lever. Default matches the screenshot: blue 190 / red 1255 position.")]
+    public SpindleSpeedLeverPosition panelSpindleSpeedLever = SpindleSpeedLeverPosition.Low190High1255;
+
+    [Tooltip("Lower-left A/B selector. Default matches the screenshot: A.")]
+    public GearSelectorAB panelGearAB = GearSelectorAB.A;
+
+    [Tooltip("Upper-middle 1/2/3/4 selector. Default matches the screenshot: 1.")]
+    public GearSelector1234 panelGear1234 = GearSelector1234.One;
+
+    [Tooltip("Lower-left C/D selector. Default matches the screenshot: C.")]
+    public GearSelectorCD panelGearCD = GearSelectorCD.C;
+
+    [Tooltip("Lower-right R/S/T/U selector. Default matches the screenshot: S.")]
+    public GearSelectorRSTU panelGearRSTU = GearSelectorRSTU.S;
+
+    public TransmissionState panelTransmission = TransmissionState.Neutral;
+    public DirectionState panelSpindleDirection = DirectionState.Forward;
+    public DirectionState panelFeedDirection = DirectionState.Neutral;
+    public bool panelMainSwitchOn;
+    public bool panelSpindleStartLatched;
+    public bool panelCoolantPumpOn;
+    public bool panelSplitNutEngaged;
+    public bool panelBrakeEngaged;
+    public bool toolPostRotationLocked = true;
 
     [Header("Power / Safety")]
     public bool mainPower = false;
     public bool emergencyStop = false;
     public bool brakeEngaged = false;
     public bool protectiveGlassClosed = true;
-    public bool protectiveDeviceClosed = true;
 
     [Header("Operator Requests")]
     public bool requestSpindleOn = false;
@@ -21,11 +106,6 @@ public class LatheMachineManager : MonoBehaviour
 
     [Header("Gearbox Selectors")]
     public LatheGearbox.Range speedRange = LatheGearbox.Range.Low;
-
-    public bool speedSwitch1;
-    public bool speedSwitch2;
-    public bool speedSwitch3;
-    public bool speedSwitch4;
 
     [Header("Transmission")]
     public int transmissionMode = 0; // 0=neutral,1=spindle,2=feed,3=thread
@@ -52,6 +132,8 @@ public class LatheMachineManager : MonoBehaviour
 
     [Header("References")]
     public Transform spindle;
+    public Transform carriageAssembly;
+    public Transform tailstockAssembly;
     public Transform carriageBody;
     public Transform carriageTop;
     public Transform toolPost;
@@ -61,6 +143,34 @@ public class LatheMachineManager : MonoBehaviour
     public Transform carriageLongitudinalHandwheel;
     public Transform toolLongitudinalWheel;
     public Transform toolTransversalWheel;
+    public LatheToolPostRotationLock toolPostRotationLock;
+
+    [Header("Manual Wheel Controls")]
+    public bool driveCrossSlideFromTransversalWheel = true;
+    public ResistedOneGrabRotateTransformer toolTransversalWheelTransformer;
+    public float toolTransversalWheelDegrees = 360f;
+    public float toolTransversalWheelTravel = 0.02f;
+    public bool invertToolTransversalWheelTravel;
+
+    public bool driveCompoundFromLongitudinalWheel = true;
+    public ResistedOneGrabRotateTransformer toolLongitudinalWheelTransformer;
+    public Vector2 toolLongitudinalWheelAngleLimits = new Vector2(-360f, 360f);
+    public float toolLongitudinalWheelDegrees = 360f;
+    public float toolLongitudinalWheelTravel = 0.02f;
+    public bool invertToolLongitudinalWheelTravel;
+
+    public bool driveTailstockFromHandwheel = true;
+    public ResistedOneGrabRotateTransformer tailstockHandwheelTransformer;
+    public float tailstockHandwheelDegrees = 720f;
+    public float tailstockHandwheelTravel = 0.35f;
+    public bool invertTailstockHandwheelTravel;
+
+    public bool driveCarriageFromLongitudinalHandwheel = true;
+    public ResistedOneGrabRotateTransformer carriageLongitudinalHandwheelTransformer;
+    [Tooltip("Min/max handwheel angles that correspond to the min/max carriage X travel.")]
+    public Vector2 carriageLongitudinalHandwheelAngleLimits = new Vector2(-1036.36f, 720f);
+    public Vector2 carriageLongitudinalHandwheelTravel = new Vector2(-0.475f, 0.33f);
+    public bool invertCarriageLongitudinalHandwheelTravel;
 
     [Header("Dynamics")]
     public float spindleAcceleration = 600f;
@@ -73,10 +183,33 @@ public class LatheMachineManager : MonoBehaviour
 
     private float _lastManualCarriageDir = 0f;
     private float _backlashRemaining = 0f;
+    private bool _manualWheelReferencesResolved;
+
+    [SerializeField, HideInInspector] private Vector3 _carriageBodyHomeLocalPosition;
+    [SerializeField, HideInInspector] private Vector3 _carriageAssemblyHomeLocalPosition;
+    [SerializeField, HideInInspector] private Vector3 _carriageTopHomeLocalPosition;
+    [SerializeField, HideInInspector] private Vector3 _toolPostHomeLocalPosition;
+    [SerializeField, HideInInspector] private Vector3 _tailstockBlockHomeLocalPosition;
+    [SerializeField, HideInInspector] private Vector3 _tailstockAssemblyHomeLocalPosition;
+    [SerializeField, HideInInspector] private Vector3 _drillTailHomeLocalPosition;
 
     private LatheGearbox gearbox;
     private LatheSafetySystem safety;
     private LatheKinematics kinematics;
+
+    public Vector3 CarriageAssemblyHomeLocalPosition => _carriageAssemblyHomeLocalPosition;
+    public Vector3 CarriageBodyHomeLocalPosition => _carriageBodyHomeLocalPosition;
+    public Vector3 CarriageTopHomeLocalPosition => _carriageTopHomeLocalPosition;
+    public Vector3 ToolPostHomeLocalPosition => _toolPostHomeLocalPosition;
+    public Vector3 TailstockAssemblyHomeLocalPosition => _tailstockAssemblyHomeLocalPosition;
+    public Vector3 TailstockBlockHomeLocalPosition => _tailstockBlockHomeLocalPosition;
+    public Vector3 DrillTailHomeLocalPosition => _drillTailHomeLocalPosition;
+
+    void Reset()
+    {
+        AutoFindReferencesByName();
+        CaptureHomePositions();
+    }
 
     void Awake()
     {
@@ -84,12 +217,25 @@ public class LatheMachineManager : MonoBehaviour
         gearbox = new LatheGearbox();
         safety = new LatheSafetySystem();
         kinematics = new LatheKinematics();
+
+        if (autoFindReferencesByName)
+            AutoFindReferencesByName();
+
+        if (captureHomePositionsOnAwake)
+            CaptureHomePositions();
+
+        if (applyScreenshotDefaultsOnAwake)
+            ApplyScreenshotPanelDefaults();
+
+        SetToolPostRotationLocked(toolPostRotationLocked);
     }
 
     void Update()
     {
+        SyncRuntimeStateFromPanel();
         EvaluateMachine();
         SimulateDynamics();
+        ApplyManualWheelControls();
         kinematics.Apply(this, Time.deltaTime);
     }
 
@@ -99,12 +245,17 @@ public class LatheMachineManager : MonoBehaviour
         bool feedAllowed = safety.CanRunFeed(this);
 
         targetRPM = spindleAllowed && requestSpindleOn
-            ? gearbox.GetRPM(speedRange, speedSwitch1, speedSwitch2, speedSwitch3, speedSwitch4) * spindleDirection
+            ? gearbox.GetRPM(speedRange, panelSpindleSpeedLever) * spindleDirection
             : 0f;
 
         if (feedAllowed && requestFeedOn)
         {
-            float feedPerRev = gearbox.GetFeedPerRev(speedRange, speedSwitch1, speedSwitch2, speedSwitch3, speedSwitch4);
+            float feedPerRev = gearbox.GetFeedPerRev(
+                panelGearAB,
+                panelGear1234,
+                panelGearCD,
+                panelGearRSTU);
+
             float revPerSecond = currentRPM / 60f;
 
             targetFeedRate = revPerSecond * feedPerRev * feedDirection;
@@ -159,7 +310,11 @@ public class LatheMachineManager : MonoBehaviour
         if (!splitNutEngaged) return;
         if (!safety.CanThread(this)) return;
 
-        float pitch = gearbox.GetThreadPitchMetric(speedRange, speedSwitch1, speedSwitch2, speedSwitch3, speedSwitch4);
+        float pitch = gearbox.GetThreadPitchMetric(
+            panelGearAB,
+            panelGear1234,
+            panelGearCD,
+            panelGearRSTU);
 
         float revPerSecond = currentRPM / 60f;
         float carriageVelocity = revPerSecond * pitch;
@@ -168,13 +323,292 @@ public class LatheMachineManager : MonoBehaviour
         carriageX = Mathf.Clamp(carriageX, carriageLimits.x, carriageLimits.y);
     }
 
-    public void SetMainPower(bool value) => mainPower = value;
+    void ApplyManualWheelControls()
+    {
+        ResolveManualWheelReferences();
+
+        if (driveCrossSlideFromTransversalWheel && toolTransversalWheelTransformer != null)
+        {
+            float normalizedTravel = GetNormalizedWheelTravel(
+                toolTransversalWheelTransformer,
+                toolTransversalWheelDegrees,
+                invertToolTransversalWheelTravel);
+
+            crossSlideZ = Mathf.Clamp(
+                normalizedTravel * toolTransversalWheelTravel,
+                crossSlideLimits.x,
+                crossSlideLimits.y);
+        }
+
+        if (driveCompoundFromLongitudinalWheel && toolLongitudinalWheelTransformer != null)
+        {
+            float normalizedTravel = GetNormalizedWheelTravel(
+                toolLongitudinalWheelTransformer,
+                toolLongitudinalWheelDegrees,
+                invertToolLongitudinalWheelTravel);
+
+            compoundX = Mathf.Clamp(
+                normalizedTravel * toolLongitudinalWheelTravel,
+                compoundLimits.x,
+                compoundLimits.y);
+        }
+
+        if (driveTailstockFromHandwheel && tailstockHandwheelTransformer != null)
+        {
+            float normalizedTravel = GetNormalizedWheelTravel(
+                tailstockHandwheelTransformer,
+                tailstockHandwheelDegrees,
+                invertTailstockHandwheelTravel);
+
+            tailstockX = Mathf.Clamp(
+                normalizedTravel * tailstockHandwheelTravel,
+                tailstockLimits.x,
+                tailstockLimits.y);
+        }
+
+        if (driveCarriageFromLongitudinalHandwheel && carriageLongitudinalHandwheelTransformer != null)
+        {
+            float angle = carriageLongitudinalHandwheelTransformer.CurrentRelativeAngle;
+
+            if (invertCarriageLongitudinalHandwheelTravel)
+                angle *= -1f;
+
+            carriageX = Mathf.Clamp(
+                MapWheelAngleToTravel(
+                    angle,
+                    carriageLongitudinalHandwheelAngleLimits,
+                    carriageLongitudinalHandwheelTravel),
+                carriageLongitudinalHandwheelTravel.x,
+                carriageLongitudinalHandwheelTravel.y);
+        }
+    }
+
+    private float GetNormalizedWheelTravel(
+        ResistedOneGrabRotateTransformer transformer,
+        float degrees,
+        bool invert)
+    {
+        float maxDegrees = Mathf.Max(0.001f, Mathf.Abs(degrees));
+        float normalizedTravel = Mathf.Clamp(
+            transformer.CurrentRelativeAngle / maxDegrees,
+            -1f,
+            1f);
+
+        return invert ? -normalizedTravel : normalizedTravel;
+    }
+
+    private float MapWheelAngleToTravel(
+        float angle,
+        Vector2 angleLimits,
+        Vector2 travelLimits)
+    {
+        if (angle < 0f)
+        {
+            float minAngle = Mathf.Min(-0.001f, angleLimits.x);
+            return Mathf.InverseLerp(0f, minAngle, angle) * travelLimits.x;
+        }
+
+        float maxAngle = Mathf.Max(0.001f, angleLimits.y);
+        return Mathf.InverseLerp(0f, maxAngle, angle) * travelLimits.y;
+    }
+
+    void ResolveManualWheelReferences()
+    {
+        if (_manualWheelReferencesResolved)
+            return;
+
+        if (autoFindReferencesByName &&
+            (toolTransversalWheel == null ||
+             toolLongitudinalWheel == null ||
+             tailstockHandwheel == null ||
+             carriageLongitudinalHandwheel == null))
+        {
+            AutoFindReferencesByName();
+        }
+
+        if (toolTransversalWheelTransformer == null && toolTransversalWheel != null)
+            toolTransversalWheelTransformer = toolTransversalWheel.GetComponent<ResistedOneGrabRotateTransformer>();
+
+        if (toolLongitudinalWheelTransformer == null && toolLongitudinalWheel != null)
+            toolLongitudinalWheelTransformer = toolLongitudinalWheel.GetComponent<ResistedOneGrabRotateTransformer>();
+
+        ApplyWheelAngleLimits(toolLongitudinalWheelTransformer, toolLongitudinalWheelAngleLimits);
+
+        if (tailstockHandwheelTransformer == null && tailstockHandwheel != null)
+            tailstockHandwheelTransformer = tailstockHandwheel.GetComponent<ResistedOneGrabRotateTransformer>();
+
+        if (carriageLongitudinalHandwheelTransformer == null && carriageLongitudinalHandwheel != null)
+            carriageLongitudinalHandwheelTransformer = carriageLongitudinalHandwheel.GetComponent<ResistedOneGrabRotateTransformer>();
+
+        _manualWheelReferencesResolved = true;
+    }
+
+    [ContextMenu("Apply Screenshot Panel Defaults")]
+    public void ApplyScreenshotPanelDefaults()
+    {
+        panelSpeedRange = LatheGearbox.Range.Low;
+        panelSpindleSpeedLever = SpindleSpeedLeverPosition.Low190High1255;
+        panelGearAB = GearSelectorAB.A;
+        panelGear1234 = GearSelector1234.One;
+        panelGearCD = GearSelectorCD.C;
+        panelGearRSTU = GearSelectorRSTU.S;
+        panelTransmission = TransmissionState.Neutral;
+        panelSpindleDirection = DirectionState.Forward;
+        panelFeedDirection = DirectionState.Neutral;
+        panelMainSwitchOn = false;
+        panelSpindleStartLatched = false;
+        panelCoolantPumpOn = false;
+        panelSplitNutEngaged = false;
+        panelBrakeEngaged = false;
+        emergencyStop = false;
+
+        SyncRuntimeStateFromPanel();
+    }
+
+    private void SyncRuntimeStateFromPanel()
+    {
+        mainPower = panelMainSwitchOn;
+        requestSpindleOn = panelSpindleStartLatched;
+        spindleDirection = (int)panelSpindleDirection;
+        requestFeedOn = panelFeedDirection != DirectionState.Neutral;
+        feedDirection = (int)panelFeedDirection;
+        splitNutEngaged = panelSplitNutEngaged;
+        coolantOn = panelCoolantPumpOn;
+        brakeEngaged = panelBrakeEngaged;
+        speedRange = panelSpeedRange;
+        transmissionMode = (int)panelTransmission;
+
+    }
+
+    [ContextMenu("Auto Find References By Name")]
+    public void AutoFindReferencesByName()
+    {
+        if (spindle == null)
+            spindle = FindChildByName("Spindle");
+
+        if (carriageAssembly == null)
+            carriageAssembly = FindChildByName("Carriage");
+
+        if (tailstockAssembly == null)
+            tailstockAssembly = FindChildByName("Tailstock");
+
+        if (carriageBody == null)
+            carriageBody = FindChildByName("CarriageBody");
+
+        if (carriageTop == null)
+            carriageTop = FindChildByName("CarriageTop");
+
+        if (toolPost == null)
+            toolPost = FindChildByName("ToolPost");
+
+        if (tailstockBlock == null)
+            tailstockBlock = FindChildByName("TailstockBlock");
+
+        if (drillTail == null)
+            drillTail = FindChildByName("DrillTail");
+
+        if (tailstockHandwheel == null)
+            tailstockHandwheel = FindChildByName("TailstockHandwheel");
+
+        if (carriageLongitudinalHandwheel == null)
+            carriageLongitudinalHandwheel = FindChildByName("CarriageLongitudinalHandwheel");
+
+        if (toolLongitudinalWheel == null)
+            toolLongitudinalWheel = FindChildByName("ToolLongitudinalWheel");
+
+        if (toolTransversalWheel == null)
+            toolTransversalWheel = FindChildByName("ToolTransversalWheel");
+
+        if (toolPostRotationLock == null && toolPost != null)
+            toolPostRotationLock = toolPost.GetComponentInChildren<LatheToolPostRotationLock>(true);
+
+        if (toolPostRotationLock == null)
+            toolPostRotationLock = FindAnyObjectByType<LatheToolPostRotationLock>();
+
+        if (toolTransversalWheelTransformer == null && toolTransversalWheel != null)
+            toolTransversalWheelTransformer = toolTransversalWheel.GetComponent<ResistedOneGrabRotateTransformer>();
+
+        if (toolLongitudinalWheelTransformer == null && toolLongitudinalWheel != null)
+            toolLongitudinalWheelTransformer = toolLongitudinalWheel.GetComponent<ResistedOneGrabRotateTransformer>();
+
+        ApplyWheelAngleLimits(toolLongitudinalWheelTransformer, toolLongitudinalWheelAngleLimits);
+
+        if (tailstockHandwheelTransformer == null && tailstockHandwheel != null)
+            tailstockHandwheelTransformer = tailstockHandwheel.GetComponent<ResistedOneGrabRotateTransformer>();
+
+        if (carriageLongitudinalHandwheelTransformer == null && carriageLongitudinalHandwheel != null)
+            carriageLongitudinalHandwheelTransformer = carriageLongitudinalHandwheel.GetComponent<ResistedOneGrabRotateTransformer>();
+
+        _manualWheelReferencesResolved = false;
+    }
+
+    [ContextMenu("Capture Current Positions As Home")]
+    public void CaptureHomePositions()
+    {
+        if (carriageAssembly != null)
+            _carriageAssemblyHomeLocalPosition = carriageAssembly.localPosition;
+
+        if (carriageBody != null)
+            _carriageBodyHomeLocalPosition = carriageBody.localPosition;
+
+        if (carriageTop != null)
+            _carriageTopHomeLocalPosition = carriageTop.localPosition;
+
+        if (toolPost != null)
+            _toolPostHomeLocalPosition = toolPost.localPosition;
+
+        if (tailstockBlock != null)
+            _tailstockBlockHomeLocalPosition = tailstockBlock.localPosition;
+
+        if (tailstockAssembly != null)
+            _tailstockAssemblyHomeLocalPosition = tailstockAssembly.localPosition;
+
+        if (drillTail != null)
+            _drillTailHomeLocalPosition = drillTail.localPosition;
+
+        if (!resetPositionValuesWhenCapturingHome)
+            return;
+
+        carriageX = 0f;
+        crossSlideZ = 0f;
+        compoundX = 0f;
+        tailstockX = 0f;
+        tailQuillExtension = 0f;
+    }
+
+    private Transform FindChildByName(string childName)
+    {
+        Transform[] children = GetComponentsInChildren<Transform>(true);
+
+        foreach (Transform child in children)
+        {
+            if (child.name == childName)
+                return child;
+        }
+
+        return null;
+    }
+
+    private void ApplyWheelAngleLimits(ResistedOneGrabRotateTransformer transformer, Vector2 angleLimits)
+    {
+        if (transformer == null || transformer.Constraints == null)
+            return;
+
+        transformer.Constraints.MinAngle.Constrain = true;
+        transformer.Constraints.MinAngle.Value = Mathf.Min(angleLimits.x, angleLimits.y);
+        transformer.Constraints.MaxAngle.Constrain = true;
+        transformer.Constraints.MaxAngle.Value = Mathf.Max(angleLimits.x, angleLimits.y);
+    }
+
+    public void SetMainPower(bool value) => SetPanelMainSwitch(value);
+    public void SetPanelMainSwitch(bool value) => panelMainSwitchOn = value;
 
     public void PressEmergencyStop()
     {
         emergencyStop = true;
-        requestSpindleOn = false;
-        requestFeedOn = false;
+        panelSpindleStartLatched = false;
+        panelFeedDirection = DirectionState.Neutral;
+        SyncRuntimeStateFromPanel();
     }
 
     public void ResetEmergencyStop()
@@ -182,22 +616,76 @@ public class LatheMachineManager : MonoBehaviour
         emergencyStop = false;
     }
 
-    public void SetBrake(bool value) => brakeEngaged = value;
+    public void SetBrake(bool value) => panelBrakeEngaged = value;
+    public void SetPanelBrake(bool value) => panelBrakeEngaged = value;
+    public void SetProtectiveGlassClosed(bool value) => protectiveGlassClosed = value;
+    public void SetProtectiveDeviceClosed(bool value) => SetProtectiveGlassClosed(value);
+    public void SetToolPostRotationLocked(bool value)
+    {
+        toolPostRotationLocked = value;
 
-    public void SetSpindleRequest(bool on) => requestSpindleOn = on;
-    public void SetSpindleDirection(int dir) => spindleDirection = Mathf.Clamp(dir, -1, 1);
-    public void SetFeedRequest(bool on) => requestFeedOn = on;
-    public void SetFeedDirection(int dir) => feedDirection = Mathf.Clamp(dir, -1, 1);
-    public void SetSplitNut(bool value) => splitNutEngaged = value;
+        if (toolPostRotationLock == null)
+        {
+            if (toolPost != null)
+                toolPostRotationLock = toolPost.GetComponentInChildren<LatheToolPostRotationLock>(true);
 
-    public void SetSpeedRange(LatheGearbox.Range range) => speedRange = range;
+            if (toolPostRotationLock == null)
+                toolPostRotationLock = FindAnyObjectByType<LatheToolPostRotationLock>();
+        }
 
-    public void SetSwitch1(bool value) => speedSwitch1 = value;
-    public void SetSwitch2(bool value) => speedSwitch2 = value;
-    public void SetSwitch3(bool value) => speedSwitch3 = value;
-    public void SetSwitch4(bool value) => speedSwitch4 = value;
+        if (toolPostRotationLock != null)
+            toolPostRotationLock.SetLocked(value);
+    }
 
-    public void SetTransmissionMode(int mode) => transmissionMode = Mathf.Clamp(mode, 0, 3);
+    public void LockToolPostRotation() => SetToolPostRotationLocked(true);
+    public void UnlockToolPostRotation() => SetToolPostRotationLocked(false);
+
+    public void SetSpindleRequest(bool on) => panelSpindleStartLatched = on;
+    public void SetSpindleDirection(int dir) => panelSpindleDirection = ToDirectionState(dir);
+    public void SetSpindleDirectionFromReverseLever(int dir)
+    {
+        panelSpindleDirection = ToDirectionState(dir);
+        panelSpindleStartLatched = panelSpindleDirection != DirectionState.Neutral;
+    }
+
+    public void SetFeedRequest(bool on) => panelFeedDirection = on ? DirectionState.Forward : DirectionState.Neutral;
+    public void SetFeedDirection(int dir) => panelFeedDirection = ToDirectionState(dir);
+    public void SetSplitNut(bool value) => panelSplitNutEngaged = value;
+    public void SetCoolantPump(bool value) => panelCoolantPumpOn = value;
+
+    public void SetSpeedRange(LatheGearbox.Range range) => panelSpeedRange = range;
+    public void SetSpeedRangeIndex(int index) => panelSpeedRange = index <= 0 ? LatheGearbox.Range.Low : LatheGearbox.Range.High;
+    public void SetSpindleSpeedLeverIndex(int index) => panelSpindleSpeedLever = (SpindleSpeedLeverPosition)Mathf.Clamp(index, 0, 3);
+
+    public void SetGearABIndex(int index) => panelGearAB = index <= 0 ? GearSelectorAB.A : GearSelectorAB.B;
+    public void SetGear1234Index(int index) => panelGear1234 = (GearSelector1234)Mathf.Clamp(index, 0, 3);
+    public void SetGearCDIndex(int index) => panelGearCD = index <= 0 ? GearSelectorCD.C : GearSelectorCD.D;
+    public void SetGearRSTUIndex(int index) => panelGearRSTU = (GearSelectorRSTU)Mathf.Clamp(index, 0, 3);
+
+    public void SetTransmissionMode(int mode) => panelTransmission = (TransmissionState)Mathf.Clamp(mode, 0, 3);
+    public void SetTransmissionState(TransmissionState state) => panelTransmission = state;
+
+    public void PressStartButton()
+    {
+        panelSpindleStartLatched = true;
+    }
+
+    public void PressStopButton()
+    {
+        panelSpindleStartLatched = false;
+        panelFeedDirection = DirectionState.Neutral;
+    }
+
+    private DirectionState ToDirectionState(int dir)
+    {
+        if (dir > 0)
+            return DirectionState.Forward;
+
+        if (dir < 0)
+            return DirectionState.Reverse;
+
+        return DirectionState.Neutral;
+    }
 
     public void ManualMoveCarriage(float input, float speed)
     {
