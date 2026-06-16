@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System;
 using Oculus.Interaction;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class LatheSnapCandidate : MonoBehaviour
 {
@@ -9,6 +11,15 @@ public class LatheSnapCandidate : MonoBehaviour
     public bool readMetaInteractableState = true;
     public Behaviour[] interactableBehaviours;
     public bool isGrabbed;
+    public bool isAttachedToMachine;
+    public LatheSnapTarget attachedToSnapTarget;
+
+    [Header("Events")]
+    public UnityEvent unityOnAttachedToMachine;
+    public UnityEvent unityOnRemovedFromMachine;
+
+    public event Action<LatheSnapCandidate, LatheSnapTarget> AttachedToMachine;
+    public event Action<LatheSnapCandidate, LatheSnapTarget> RemovedFromMachine;
 
     public Transform Root => snapRoot != null ? snapRoot : transform;
     public Transform Anchor => snapAnchor != null ? snapAnchor : Root;
@@ -72,6 +83,24 @@ public class LatheSnapCandidate : MonoBehaviour
     public void NotifyGrabEnded()
     {
         isGrabbed = false;
+    }
+
+    public void MarkAttachedToMachine(LatheSnapTarget snapTarget)
+    {
+        isAttachedToMachine = true;
+        attachedToSnapTarget = snapTarget;
+        unityOnAttachedToMachine?.Invoke();
+        AttachedToMachine?.Invoke(this, snapTarget);
+    }
+
+    public void MarkRemovedFromMachine()
+    {
+        LatheSnapTarget previousTarget = attachedToSnapTarget;
+
+        isAttachedToMachine = false;
+        attachedToSnapTarget = null;
+        unityOnRemovedFromMachine?.Invoke();
+        RemovedFromMachine?.Invoke(this, previousTarget);
     }
 
     private void CacheInteractableViews()

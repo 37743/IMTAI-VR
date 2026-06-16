@@ -141,6 +141,7 @@ public class LatheMachineManager : MonoBehaviour
     public Transform drillTail;
     public Transform tailstockHandwheel;
     public Transform carriageLongitudinalHandwheel;
+    public Transform turningBar;
     public Transform toolLongitudinalWheel;
     public Transform toolTransversalWheel;
     public LatheToolPostRotationLock toolPostRotationLock;
@@ -172,6 +173,11 @@ public class LatheMachineManager : MonoBehaviour
     public Vector2 carriageLongitudinalHandwheelTravel = new Vector2(-0.475f, 0.33f);
     public bool invertCarriageLongitudinalHandwheelTravel;
 
+    [Header("Visual Followers")]
+    public bool rotateTurningBarWithCarriageHandwheel = true;
+    public float turningBarRotationScale = 1f;
+    public bool invertTurningBarRotation;
+
     [Header("Dynamics")]
     public float spindleAcceleration = 600f;
     public float spindleDeceleration = 180f;
@@ -192,6 +198,7 @@ public class LatheMachineManager : MonoBehaviour
     [SerializeField, HideInInspector] private Vector3 _tailstockBlockHomeLocalPosition;
     [SerializeField, HideInInspector] private Vector3 _tailstockAssemblyHomeLocalPosition;
     [SerializeField, HideInInspector] private Vector3 _drillTailHomeLocalPosition;
+    [SerializeField, HideInInspector] private Quaternion _turningBarHomeLocalRotation;
 
     private LatheGearbox gearbox;
     private LatheSafetySystem safety;
@@ -236,6 +243,7 @@ public class LatheMachineManager : MonoBehaviour
         EvaluateMachine();
         SimulateDynamics();
         ApplyManualWheelControls();
+        ApplyVisualFollowers();
         kinematics.Apply(this, Time.deltaTime);
     }
 
@@ -383,6 +391,28 @@ public class LatheMachineManager : MonoBehaviour
         }
     }
 
+    void ApplyVisualFollowers()
+    {
+        if (!rotateTurningBarWithCarriageHandwheel || turningBar == null)
+            return;
+
+        ResolveManualWheelReferences();
+
+        float angle = 0f;
+
+        if (carriageLongitudinalHandwheelTransformer != null)
+            angle = carriageLongitudinalHandwheelTransformer.CurrentRelativeAngle;
+        else if (carriageLongitudinalHandwheel != null)
+            angle = carriageLongitudinalHandwheel.localEulerAngles.x;
+
+        if (invertTurningBarRotation)
+            angle *= -1f;
+
+        turningBar.localRotation =
+            _turningBarHomeLocalRotation *
+            Quaternion.AngleAxis(angle * turningBarRotationScale, Vector3.right);
+    }
+
     private float GetNormalizedWheelTravel(
         ResistedOneGrabRotateTransformer transformer,
         float degrees,
@@ -420,6 +450,7 @@ public class LatheMachineManager : MonoBehaviour
         if (autoFindReferencesByName &&
             (toolTransversalWheel == null ||
              toolLongitudinalWheel == null ||
+             turningBar == null ||
              tailstockHandwheel == null ||
              carriageLongitudinalHandwheel == null))
         {
@@ -513,6 +544,12 @@ public class LatheMachineManager : MonoBehaviour
         if (carriageLongitudinalHandwheel == null)
             carriageLongitudinalHandwheel = FindChildByName("CarriageLongitudinalHandwheel");
 
+        if (turningBar == null)
+            turningBar = FindChildByName("TurningBar");
+
+        if (turningBar == null)
+            turningBar = FindChildByName("turningbar");
+
         if (toolLongitudinalWheel == null)
             toolLongitudinalWheel = FindChildByName("ToolLongitudinalWheel");
 
@@ -565,6 +602,9 @@ public class LatheMachineManager : MonoBehaviour
 
         if (drillTail != null)
             _drillTailHomeLocalPosition = drillTail.localPosition;
+
+        if (turningBar != null)
+            _turningBarHomeLocalRotation = turningBar.localRotation;
 
         if (!resetPositionValuesWhenCapturingHome)
             return;

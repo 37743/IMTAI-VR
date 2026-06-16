@@ -189,6 +189,8 @@ public class LatheDebugStateDisplay : MonoBehaviour
         AppendBool("Carriage follows handwheel", machineManager.driveCarriageFromLongitudinalHandwheel);
         AppendLine("Carriage wheel angle", FormatAngle(machineManager.carriageLongitudinalHandwheelTransformer));
         AppendLine("Carriage wheel travel", FormatRange(machineManager.carriageLongitudinalHandwheelTravel));
+        AppendBool("Turning bar follows carriage wheel", machineManager.rotateTurningBarWithCarriageHandwheel);
+        AppendLine("Turning bar", machineManager.turningBar != null ? machineManager.turningBar.name : "Not assigned");
     }
 
     private void AppendSection(string title)

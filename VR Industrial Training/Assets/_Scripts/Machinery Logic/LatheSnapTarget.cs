@@ -34,6 +34,8 @@ public class LatheSnapTarget : MonoBehaviour
     [Header("Events")]
     public UnityEvent unityOnSnapped;
     public UnityEvent<Transform> onSnapped;
+    public UnityEvent unityOnUnsnapped;
+    public UnityEvent<Transform> onUnsnapped;
 
     private Rigidbody snappedRigidbody;
 
@@ -121,8 +123,11 @@ public class LatheSnapTarget : MonoBehaviour
         if (currentCandidate == null)
             return;
 
+        Transform unsnappedCandidate = currentCandidate;
+        LatheSnapCandidate snapCandidate = GetSnapCandidateComponent(unsnappedCandidate);
+
         if (parentToSnapPoint)
-            currentCandidate.SetParent(null, true);
+            unsnappedCandidate.SetParent(null, true);
 
         if (snappedRigidbody != null)
             snappedRigidbody.isKinematic = false;
@@ -130,6 +135,12 @@ public class LatheSnapTarget : MonoBehaviour
         snappedRigidbody = null;
         hasSnapped = false;
         isCandidateGrabbed = false;
+
+        if (snapCandidate != null)
+            snapCandidate.MarkRemovedFromMachine();
+
+        unityOnUnsnapped?.Invoke();
+        onUnsnapped?.Invoke(unsnappedCandidate);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -277,6 +288,7 @@ public class LatheSnapTarget : MonoBehaviour
         currentCandidate = candidate;
         hasSnapped = true;
         isCandidateGrabbed = false;
+        LatheSnapCandidate snapCandidate = GetSnapCandidateComponent(candidate);
 
         Rigidbody rb = candidate.GetComponent<Rigidbody>();
 
@@ -315,6 +327,9 @@ public class LatheSnapTarget : MonoBehaviour
                     behaviour.enabled = false;
             }
         }
+
+        if (snapCandidate != null)
+            snapCandidate.MarkAttachedToMachine(this);
 
         unityOnSnapped?.Invoke();
         onSnapped?.Invoke(candidate);
