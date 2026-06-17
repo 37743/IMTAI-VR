@@ -22,6 +22,9 @@ public class LatheDebugStateDisplay : MonoBehaviour
     public bool showLimits = false;
     public bool showManualWheelDrives = true;
 
+    [Header("Timer")]
+    public bool showTimeCounter = true;
+
     [Header("Formatting")]
     public string trueSymbol = "✓";
     public string falseSymbol = "X";
@@ -71,6 +74,9 @@ public class LatheDebugStateDisplay : MonoBehaviour
 
         builder.Clear();
         builder.AppendLine("Lathe Debug");
+
+        if (showTimeCounter)
+            AppendLine("Time", FormatElapsedTime(Time.timeSinceLevelLoad));
 
         if (showSafety)
             AppendSafety();
@@ -227,6 +233,17 @@ public class LatheDebugStateDisplay : MonoBehaviour
     private static string FormatMeters(float value)
     {
         return $"{value:F3} m";
+    }
+
+    private static string FormatElapsedTime(float seconds)
+    {
+        seconds = Mathf.Max(0f, seconds);
+
+        int totalSeconds = Mathf.FloorToInt(seconds);
+        int minutes = totalSeconds / 60;
+        int remainingSeconds = totalSeconds % 60;
+
+        return $"{minutes:00}:{remainingSeconds:00}";
     }
 
     private static string FormatRange(Vector2 range)

@@ -91,6 +91,7 @@ public class RunDecoderState : SentisWhisperState
 
             if (!string.IsNullOrEmpty(finalTranscript) && whisper.machineGuide != null)
             {
+                whisper.machineGuide.RecordAsrHypothesis(finalTranscript);
                 Debug.Log($"Sending to AI: {finalTranscript}");
                 whisper.machineGuide.AskQuestion(finalTranscript);
             }
