@@ -1,18 +1,8 @@
-# VR IMTAI
+# IMTAI VR 
 
-<!--
-Image slots for future repository assets:
-- docs/images/hero.png
-- docs/images/demo.gif
-- docs/images/lathe-training.png
-- docs/images/ai-guidance.png
-- docs/images/performance-review.png
-
-Example:
 <p align="center">
-  <img src="docs/images/hero.png" alt="VR IMTAI training environment" width="900">
+  <img src="VR Industrial Training/Assets/_Rendering/Decals/IMTAI Logo.png" alt="VR IMTAI training environment" width="200">
 </p>
--->
 
 <p align="center">
   <strong>Virtual Reality-Based Industrial Machinery Training Using Agentic AI for Decision Support for Industry 4.0</strong>
