@@ -129,20 +129,6 @@ public class ProbeMachine : MonoBehaviour
                 "brakeEngaged", machineManager.brakeEngaged)));
 
         components.Add(new ComponentProbe(
-            "CarriageBody",
-            State("carriageX", machineManager.carriageX)));
-
-        components.Add(new ComponentProbe(
-            "CarriageLongitudinalHandwheel",
-            State(
-                "driveCarriageFromLongitudinalHandwheel", machineManager.driveCarriageFromLongitudinalHandwheel,
-                "carriageX", machineManager.carriageX)));
-
-        components.Add(new ComponentProbe(
-            "CarriageTop",
-            State("crossSlideZ", machineManager.crossSlideZ)));
-
-        components.Add(new ComponentProbe(
             "ControlPanel",
             State(
                 "panelMainSwitchOn", machineManager.panelMainSwitchOn,
@@ -151,10 +137,6 @@ public class ProbeMachine : MonoBehaviour
                 "panelFeedDirection", machineManager.panelFeedDirection.ToString(),
                 "panelSplitNutEngaged", machineManager.panelSplitNutEngaged,
                 "panelBrakeEngaged", machineManager.panelBrakeEngaged)));
-
-        components.Add(new ComponentProbe(
-            "DrillTail",
-            State("tailQuillExtension", machineManager.tailQuillExtension)));
 
         components.Add(new ComponentProbe(
             "EmergencyStop",
@@ -197,7 +179,7 @@ public class ProbeMachine : MonoBehaviour
 
         components.Add(new ComponentProbe(
             "ProtectiveDevice",
-            State("protectiveDeviceClosed", machineManager.protectiveGlassClosed)));
+            State("protectiveDeviceClosed", machineManager.protectiveDeviceClosed)));
 
         components.Add(new ComponentProbe(
             "SpeedSwitch1",
@@ -240,41 +222,14 @@ public class ProbeMachine : MonoBehaviour
                 "splitNutEngaged", machineManager.splitNutEngaged)));
 
         components.Add(new ComponentProbe(
-            "TailstockBlock",
-            State("tailstockX", machineManager.tailstockX)));
-
-        components.Add(new ComponentProbe(
-            "TailstockHandwheel",
-            State(
-                "driveTailstockFromHandwheel", machineManager.driveTailstockFromHandwheel,
-                "tailstockX", machineManager.tailstockX,
-                "tailQuillExtension", machineManager.tailQuillExtension)));
-
-        components.Add(new ComponentProbe(
-            "TailSupport",
-            State("tailstockX", machineManager.tailstockX)));
-
-        components.Add(new ComponentProbe(
             "ToolLockingLever",
             State("toolPostRotationLocked", machineManager.toolPostRotationLocked)));
-
-        components.Add(new ComponentProbe(
-            "ToolLongitudinalWheel",
-            State(
-                "driveCompoundFromLongitudinalWheel", machineManager.driveCompoundFromLongitudinalWheel,
-                "compoundX", machineManager.compoundX)));
 
         components.Add(new ComponentProbe(
             "ToolPost",
             State(
                 "toolPostRotationLocked", machineManager.toolPostRotationLocked,
                 "compoundX", machineManager.compoundX,
-                "crossSlideZ", machineManager.crossSlideZ)));
-
-        components.Add(new ComponentProbe(
-            "ToolTransversalWheel",
-            State(
-                "driveCrossSlideFromTransversalWheel", machineManager.driveCrossSlideFromTransversalWheel,
                 "crossSlideZ", machineManager.crossSlideZ)));
 
         components.Add(new ComponentProbe(
@@ -317,20 +272,8 @@ public class ProbeMachine : MonoBehaviour
             case "Brake2":
                 return "Brake control used to stop or prevent spindle motion while engaged.";
 
-            case "CarriageBody":
-                return "Main carriage body that travels along the lathe bed on the X axis.";
-
-            case "CarriageLongitudinalHandwheel":
-                return "Manual handwheel that drives carriage travel along the bed.";
-
-            case "CarriageTop":
-                return "Cross-slide assembly that moves the tool laterally relative to the workpiece.";
-
             case "ControlPanel":
                 return "Aggregated machine control panel state for power, transmission, spindle, feed, split nut, and brake controls.";
-
-            case "DrillTail":
-                return "Tailstock quill/drill element that extends toward the workpiece.";
 
             case "EmergencyStop":
                 return "Safety stop that immediately disables spindle and feed requests.";
@@ -377,26 +320,11 @@ public class ProbeMachine : MonoBehaviour
             case "SplitNutControlLever":
                 return "Engages the split nut for threading behavior.";
 
-            case "TailstockBlock":
-                return "Tailstock body position along the lathe bed.";
-
-            case "TailstockHandwheel":
-                return "Manual control for tailstock movement and quill extension.";
-
-            case "TailSupport":
-                return "Tailstock support assembly position along the lathe bed.";
-
             case "ToolLockingLever":
                 return "Locks or unlocks toolpost rotation.";
 
-            case "ToolLongitudinalWheel":
-                return "Manual wheel that drives compound/tool longitudinal travel.";
-
             case "ToolPost":
                 return "Tool holder assembly affected by compound, cross-slide, and rotation-lock states.";
-
-            case "ToolTransversalWheel":
-                return "Manual wheel that drives cross-slide transverse travel.";
 
             case "TransmissionLever":
                 return "Selects machine transmission mode: neutral, spindle, feed, or thread.";
@@ -439,7 +367,6 @@ public class ProbeMachine : MonoBehaviour
             case "requestSpindleOn":
             case "panelBrakeEngaged":
             case "brakeEngaged":
-            case "driveCarriageFromLongitudinalHandwheel":
             case "panelMainSwitchOn":
             case "panelSpindleStartLatched":
             case "panelSplitNutEngaged":
@@ -448,10 +375,7 @@ public class ProbeMachine : MonoBehaviour
             case "mainPower":
             case "protectiveDeviceClosed":
             case "splitNutEngaged":
-            case "driveTailstockFromHandwheel":
             case "toolPostRotationLocked":
-            case "driveCompoundFromLongitudinalWheel":
-            case "driveCrossSlideFromTransversalWheel":
             case "rotateTurningBarWithCarriageHandwheel":
                 return BoolStates();
 
@@ -475,20 +399,11 @@ public class ProbeMachine : MonoBehaviour
             case "targetFeedRate":
                 return RuntimeFloat("m/s", "Target feed rate derived from RPM, feed gearing, transmission mode, and feed direction.");
 
-            case "carriageX":
-                return NumericRange(machineManager.carriageLimits.x, machineManager.carriageLimits.y, "m", "Carriage travel.");
-
             case "crossSlideZ":
                 return NumericRange(machineManager.crossSlideLimits.x, machineManager.crossSlideLimits.y, "m", "Cross-slide travel.");
 
             case "compoundX":
                 return NumericRange(machineManager.compoundLimits.x, machineManager.compoundLimits.y, "m", "Compound/toolpost travel.");
-
-            case "tailstockX":
-                return NumericRange(machineManager.tailstockLimits.x, machineManager.tailstockLimits.y, "m", "Tailstock body travel.");
-
-            case "tailQuillExtension":
-                return NumericRange(machineManager.tailQuillLimits.x, machineManager.tailQuillLimits.y, "m", "Tailstock quill extension.");
 
             case "panelTransmission":
                 return EnumNames(typeof(LatheMachineManager.TransmissionState));

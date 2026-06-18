@@ -94,7 +94,7 @@ public class LatheMachineManager : MonoBehaviour
     public bool mainPower = false;
     public bool emergencyStop = false;
     public bool brakeEngaged = false;
-    public bool protectiveGlassClosed = true;
+    public bool protectiveDeviceClosed = true;
 
     [Header("Operator Requests")]
     public bool requestSpindleOn = false;
@@ -658,7 +658,7 @@ public class LatheMachineManager : MonoBehaviour
 
     public void SetBrake(bool value) => panelBrakeEngaged = value;
     public void SetPanelBrake(bool value) => panelBrakeEngaged = value;
-    public void SetProtectiveGlassClosed(bool value) => protectiveGlassClosed = value;
+    public void SetProtectiveGlassClosed(bool value) => protectiveDeviceClosed = value;
     public void SetProtectiveDeviceClosed(bool value) => SetProtectiveGlassClosed(value);
     public void SetToolPostRotationLocked(bool value)
     {

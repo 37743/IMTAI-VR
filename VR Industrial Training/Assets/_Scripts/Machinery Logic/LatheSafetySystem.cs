@@ -7,7 +7,7 @@ public class LatheSafetySystem
         if (!m.mainPower) return false;
         if (m.emergencyStop) return false;
         if (m.brakeEngaged) return false;
-        if (!m.protectiveGlassClosed) return false;
+        if (!m.protectiveDeviceClosed) return false;
         return true;
     }
 

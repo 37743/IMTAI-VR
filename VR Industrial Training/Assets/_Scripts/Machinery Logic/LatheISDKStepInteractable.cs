@@ -10,9 +10,12 @@ public abstract class LatheISDKStepInteractable : MonoBehaviour
     [Header("Step State")]
     public bool isStepActive;
 
-    [Header("Meta ISDK Components To Enable Only During Highlighted Step")]
+    [Header("Meta ISDK Interaction Availability")]
     [Tooltip("Drag HandGrabInteractable, GrabInteractable, PokeInteractable, or related ISDK behaviours here.")]
     public Behaviour[] interactionBehavioursToEnable;
+
+    [Tooltip("If false, the object stays interactable outside the current highlighted training step.")]
+    public bool disableInteractionOutsideActiveStep = false;
 
     [Header("Completion")]
     public UnityEvent unityOnCompleted;
@@ -38,7 +41,7 @@ public abstract class LatheISDKStepInteractable : MonoBehaviour
             foreach (Behaviour behaviour in interactionBehavioursToEnable)
             {
                 if (behaviour != null)
-                    behaviour.enabled = active;
+                    behaviour.enabled = active || !disableInteractionOutsideActiveStep;
             }
         }
     }

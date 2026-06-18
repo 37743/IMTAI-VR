@@ -13,7 +13,13 @@ public sealed class ConsoleSpamFilter : ILogHandler
     {
         "XR_ERROR_ACTIONSET_NOT_ATTACHED",
         "ErrorFunctionUnsupported",
-        "XR_ERROR_FUNCTION_UNSUPPORTED"
+        "XR_ERROR_FUNCTION_UNSUPPORTED",
+        "Error setting active audio output driver",
+        "Local Dimming feature is not supported",
+        "BoxCollider does not support negative scale or size",
+        "Setting linear velocity of a kinematic body is not supported",
+        "Setting angular velocity of a kinematic body is not supported",
+        "Data longer than the AudioClip"
     };
 
 #if UNITY_EDITOR

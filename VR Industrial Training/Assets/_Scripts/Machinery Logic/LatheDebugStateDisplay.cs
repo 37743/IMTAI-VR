@@ -110,7 +110,7 @@ public class LatheDebugStateDisplay : MonoBehaviour
         AppendBool("Emergency stop pressed", machineManager.emergencyStop);
         AppendBool("Brake released", !machineManager.brakeEngaged);
         AppendBool("Brake engaged", machineManager.brakeEngaged);
-        AppendBool("Protective shield closed", machineManager.protectiveGlassClosed);
+        AppendBool("Protective shield closed", machineManager.protectiveDeviceClosed);
     }
 
     private void AppendControls()

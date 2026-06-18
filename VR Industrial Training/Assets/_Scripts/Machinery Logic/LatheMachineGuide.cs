@@ -28,6 +28,7 @@ public class LatheMachineGuide : MonoBehaviour
     public Button backButton;
 
     [Header("Meta ISDK Step Interaction")]
+    [Tooltip("If true, highlighted step interactables are tracked for completion. Other objects remain interactable unless their own disableInteractionOutsideActiveStep flag is enabled.")]
     public bool enableOnlyHighlightedInteractables = true;
 
     [Tooltip("If true, Next stays disabled until the highlighted Meta ISDK interaction is completed.")]
@@ -132,7 +133,7 @@ public class LatheMachineGuide : MonoBehaviour
         ResolveMachineManager();
         _lastEmergencyStopState = machineManager != null && machineManager.emergencyStop;
         InitializeButtons();
-        DisableAllLatheInteractablesInScene();
+        ResetAllLatheStepTrackingInScene();
     }
 
     private void Update()
@@ -687,7 +688,7 @@ public class LatheMachineGuide : MonoBehaviour
         _pendingInteractables.Clear();
     }
 
-    private void DisableAllLatheInteractablesInScene()
+    private void ResetAllLatheStepTrackingInScene()
     {
         LatheISDKStepInteractable[] interactables =
             FindObjectsByType<LatheISDKStepInteractable>(
