@@ -34,10 +34,18 @@ public class StartTranscriptionState : SentisWhisperState
             return;
         }
 
-        whisper.Data = new float[maxSamples];
-        whisper.NumSamples = maxSamples;
+        int clipSampleCount = whisper.NumSamples;
+        float[] clipData = new float[clipSampleCount];
 
-        whisper.AudioClip.GetData(whisper.Data, 0);
+        if (!whisper.AudioClip.GetData(clipData, 0))
+        {
+            Debug.LogError("Failed to read samples from the AudioClip.");
+            return;
+        }
+
+        whisper.Data = new float[maxSamples];
+        System.Array.Copy(clipData, whisper.Data, clipSampleCount);
+        whisper.NumSamples = maxSamples;
     }
 
     public override void Update()
