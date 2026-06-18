@@ -23,7 +23,7 @@ Shader "Custom/OutlineShaderVR"
             // Required for VR Single Pass Instancing
             #pragma multi_compile_fwdbase
             #include "UnityCG.cginc"
-c
+
             struct appdata
             {
                 float4 vertex : POSITION;

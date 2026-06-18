@@ -65,6 +65,7 @@ public class ProbeMachine : MonoBehaviour
 
         requestWeb.uploadHandler = new UploadHandlerRaw(bodyRaw);
         requestWeb.downloadHandler = new DownloadHandlerBuffer();
+        requestWeb.SetRequestHeader("Accept", "application/json");
         requestWeb.SetRequestHeader("Content-Type", "application/json");
 
         yield return requestWeb.SendWebRequest();
@@ -75,7 +76,15 @@ public class ProbeMachine : MonoBehaviour
         }
         else
         {
-            Debug.LogError("Probe failed: " + requestWeb.error);
+            string responseBody = requestWeb.downloadHandler != null
+                ? requestWeb.downloadHandler.text
+                : string.Empty;
+
+            Debug.LogError(
+                $"Probe failed: HTTP {requestWeb.responseCode} {requestWeb.error}\n" +
+                $"URL: {url}\n" +
+                $"Response: {responseBody}\n" +
+                $"Payload: {json}");
         }
     }
 

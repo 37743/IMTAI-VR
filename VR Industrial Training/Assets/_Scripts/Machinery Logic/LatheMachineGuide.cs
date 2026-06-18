@@ -96,6 +96,8 @@ public class LatheMachineGuide : MonoBehaviour
     private string _pendingAsrHypothesis;
     private bool _lastEmergencyStopState;
     private bool _showingFinalStepScreen;
+    private Coroutine _askRequestCoroutine;
+    private UnityWebRequest _activeAskRequest;
 
     private readonly List<LatheISDKStepInteractable> _activeInteractables =
         new List<LatheISDKStepInteractable>();
@@ -131,17 +133,18 @@ public class LatheMachineGuide : MonoBehaviour
         _lastEmergencyStopState = machineManager != null && machineManager.emergencyStop;
         InitializeButtons();
         DisableAllLatheInteractablesInScene();
-        AskQuestion(prompt);
     }
 
     private void Update()
     {
         SampleEvaluationFrameRate();
         DetectEmergencyStopEndCondition();
+        UpdateCurrentStepCompletionState();
     }
 
     private void OnDestroy()
     {
+        AbortActiveAskRequest();
         ClearActiveStepInteractables();
 
         if (nextButton != null)
@@ -184,7 +187,10 @@ public class LatheMachineGuide : MonoBehaviour
         SetButtonsActive(false);
 
         prompt = newQuestion;
-        StartCoroutine(SendRequest(prompt));
+
+        AbortActiveAskRequest();
+
+        _askRequestCoroutine = StartCoroutine(SendRequest(prompt));
     }
 
     private IEnumerator SendRequest(string currentQuestion)
@@ -197,15 +203,58 @@ public class LatheMachineGuide : MonoBehaviour
         _askRequestStartRealtime = Time.realtimeSinceStartup;
 
         UnityWebRequest request = UnityWebRequest.Get(url);
+        request.SetRequestHeader("Accept", "application/json");
+        _activeAskRequest = request;
+
+        if (stepText != null)
+            stepText.text = "Loading...";
+
         yield return request.SendWebRequest();
+
+        if (_activeAskRequest == request)
+            _activeAskRequest = null;
 
         if (request.result != UnityWebRequest.Result.Success)
         {
-            Debug.LogError($"Error connecting to {baseUrl}: {request.error}");
+            _askRequestCoroutine = null;
+            Debug.LogError(FormatRequestError("Training request failed", baseUrl, request));
+            request.Dispose();
+            UpdateUIAndAudio("Training request failed. Check the server connection and try again.");
             yield break;
         }
 
-        ProcessResponse(request.downloadHandler.text);
+        string responseText = request.downloadHandler.text;
+        _askRequestCoroutine = null;
+        request.Dispose();
+        ProcessResponse(responseText);
+    }
+
+    private void AbortActiveAskRequest()
+    {
+        if (_activeAskRequest != null && !_activeAskRequest.isDone)
+            _activeAskRequest.Abort();
+
+        if (_activeAskRequest != null)
+            _activeAskRequest.Dispose();
+
+        _activeAskRequest = null;
+
+        if (_askRequestCoroutine != null)
+            StopCoroutine(_askRequestCoroutine);
+
+        _askRequestCoroutine = null;
+    }
+
+    private string FormatRequestError(string title, string url, UnityWebRequest request)
+    {
+        string responseBody = request.downloadHandler != null
+            ? request.downloadHandler.text
+            : string.Empty;
+
+        return
+            $"{title}: HTTP {request.responseCode} {request.error}\n" +
+            $"URL: {url}\n" +
+            $"Response: {responseBody}";
     }
 
     private void ProcessResponse(string jsonResponse)
@@ -320,7 +369,7 @@ public class LatheMachineGuide : MonoBehaviour
             _currentStepIndex >= _currentSteps.Length - 1)
             return;
 
-        if (requireInteractionBeforeNextStep && _pendingInteractables.Count > 0)
+        if (ShouldBlockCurrentStepAdvance())
         {
             string stepKey = GetCurrentStepKey();
             RecordOmissionErrorOnce(
@@ -329,7 +378,7 @@ public class LatheMachineGuide : MonoBehaviour
             RecordSequenceErrorOnce(
                 $"next_sequence:{stepKey}",
                 "Next was pressed before the current step was complete.");
-            Debug.LogWarning("Complete the highlighted Meta ISDK interaction before continuing.");
+            Debug.LogWarning("Complete the required machine state for this step before continuing.");
             return;
         }
 
@@ -388,10 +437,7 @@ public class LatheMachineGuide : MonoBehaviour
         else
             HighlightObjectsForStep(_currentData, (_currentStepIndex + 1).ToString());
 
-        if (currentStepInfo != null && !StepRequiresInteraction(currentStepInfo))
-            MarkCurrentStepCorrect("No index/state interaction requirement for this step.");
-        else if (_pendingInteractables.Count == 0)
-            MarkCurrentStepCorrect("No pending interactable actions for this step.");
+        UpdateCurrentStepCompletionState();
 
         if (backButton != null)
             backButton.interactable = _currentStepIndex > 0;
@@ -420,11 +466,57 @@ public class LatheMachineGuide : MonoBehaviour
         }
 
         bool hasNextStep = _currentStepIndex < _currentSteps.Length - 1;
-        bool waitingForInteraction =
-            requireInteractionBeforeNextStep &&
-            _pendingInteractables.Count > 0;
 
-        nextButton.interactable = hasNextStep && !waitingForInteraction;
+        nextButton.interactable = hasNextStep && !ShouldBlockCurrentStepAdvance();
+    }
+
+    private void UpdateCurrentStepCompletionState()
+    {
+        if (_showingFinalStepScreen || _currentSteps == null || _currentSteps.Length == 0)
+            return;
+
+        if (IsCurrentStepReadyForNext())
+        {
+            RecordCurrentStepActionsSafe();
+            MarkCurrentStepCorrect("Required machine state is satisfied.");
+        }
+
+        UpdateNextButtonState();
+    }
+
+    private bool IsCurrentStepReadyForNext()
+    {
+        ComponentInfo stepInfo = GetCurrentStepInfo();
+
+        if (stepInfo == null)
+            return _pendingInteractables.Count == 0;
+
+        if (HasStepState(stepInfo))
+            return AreStepStatesSatisfied(stepInfo);
+
+        if (StepRequiresInteraction(stepInfo))
+            return _pendingInteractables.Count == 0;
+
+        return true;
+    }
+
+    private bool ShouldBlockCurrentStepAdvance()
+    {
+        ComponentInfo stepInfo = GetCurrentStepInfo();
+
+        if (stepInfo != null && HasStepState(stepInfo))
+            return !AreStepStatesSatisfied(stepInfo);
+
+        return requireInteractionBeforeNextStep && !IsCurrentStepReadyForNext();
+    }
+
+    private ComponentInfo GetCurrentStepInfo()
+    {
+        return _currentStepComponents != null &&
+            _currentStepIndex >= 0 &&
+            _currentStepIndex < _currentStepComponents.Length
+                ? _currentStepComponents[_currentStepIndex]
+                : null;
     }
 
     private void UpdateUIAndAudio(string textToDisplay)
@@ -571,9 +663,10 @@ public class LatheMachineGuide : MonoBehaviour
 
         Debug.Log($"Completed Meta ISDK interaction: {interactable.name}");
 
-        if (_pendingInteractables.Count == 0)
+        if (IsCurrentStepReadyForNext())
         {
-            MarkCurrentStepCorrect("All pending interactable actions completed.");
+            RecordCurrentStepActionsSafe();
+            MarkCurrentStepCorrect("Required machine state is satisfied after interaction.");
             UpdateNextButtonState();
         }
     }
@@ -935,6 +1028,7 @@ public class LatheMachineGuide : MonoBehaviour
         byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Accept", "application/json");
         request.SetRequestHeader("Content-Type", "application/json");
 
         yield return request.SendWebRequest();
@@ -950,7 +1044,7 @@ public class LatheMachineGuide : MonoBehaviour
         else
         {
             _evaluationSubmitting = false;
-            Debug.LogError($"Evaluation submit failed: {request.error}");
+            Debug.LogError(FormatRequestError("Evaluation submit failed", url, request));
         }
     }
 
@@ -1277,6 +1371,209 @@ public class LatheMachineGuide : MonoBehaviour
         return false;
     }
 
+    private bool AreStepStatesSatisfied(ComponentInfo stepInfo)
+    {
+        if (machineManager == null)
+            return false;
+
+        if (stepInfo == null || stepInfo.state == null || stepInfo.state.Count == 0)
+            return true;
+
+        foreach (KeyValuePair<string, object> stateEntry in stepInfo.state)
+        {
+            if (string.IsNullOrWhiteSpace(stateEntry.Key))
+                continue;
+
+            if (IsNestedStateRequirement(stateEntry.Value))
+            {
+                foreach (KeyValuePair<string, object> nestedState in EnumerateStateRequirements(stateEntry.Value))
+                {
+                    if (!IsMachineStateSatisfied(nestedState.Key, nestedState.Value))
+                        return false;
+                }
+
+                continue;
+            }
+
+            if (!IsMachineStateSatisfied(stateEntry.Key, stateEntry.Value))
+                return false;
+        }
+
+        return true;
+    }
+
+    private bool IsNestedStateRequirement(object value)
+    {
+        if (value is Newtonsoft.Json.Linq.JObject)
+            return true;
+
+        return value is Dictionary<string, object>;
+    }
+
+    private IEnumerable<KeyValuePair<string, object>> EnumerateStateRequirements(object value)
+    {
+        Newtonsoft.Json.Linq.JObject jsonObject = value as Newtonsoft.Json.Linq.JObject;
+
+        if (jsonObject != null)
+        {
+            foreach (Newtonsoft.Json.Linq.JProperty property in jsonObject.Properties())
+                yield return new KeyValuePair<string, object>(property.Name, property.Value);
+
+            yield break;
+        }
+
+        Dictionary<string, object> dictionary = value as Dictionary<string, object>;
+
+        if (dictionary == null)
+            yield break;
+
+        foreach (KeyValuePair<string, object> pair in dictionary)
+            yield return pair;
+    }
+
+    private bool IsMachineStateSatisfied(string stateName, object expectedValue)
+    {
+        if (machineManager == null || string.IsNullOrWhiteSpace(stateName))
+            return false;
+
+        System.Reflection.BindingFlags flags =
+            System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.Public |
+            System.Reflection.BindingFlags.IgnoreCase;
+
+        System.Reflection.FieldInfo field =
+            typeof(LatheMachineManager).GetField(stateName, flags);
+
+        if (field != null)
+            return StateValueMatches(field.GetValue(machineManager), expectedValue);
+
+        System.Reflection.PropertyInfo property =
+            typeof(LatheMachineManager).GetProperty(stateName, flags);
+
+        if (property != null)
+            return StateValueMatches(property.GetValue(machineManager, null), expectedValue);
+
+        Debug.LogWarning($"LatheMachineGuide: state '{stateName}' was not found on LatheMachineManager.");
+        return false;
+    }
+
+    private bool StateValueMatches(object actualValue, object expectedValue)
+    {
+        expectedValue = NormalizeExpectedStateValue(expectedValue);
+
+        if (actualValue == null || expectedValue == null)
+            return actualValue == expectedValue;
+
+        Type actualType = actualValue.GetType();
+
+        if (actualType.IsEnum)
+            return EnumStateMatches(actualValue, expectedValue);
+
+        if (actualValue is bool)
+            return BoolStateMatches((bool)actualValue, expectedValue);
+
+        if (IsNumericValue(actualValue))
+            return NumericStateMatches(actualValue, expectedValue);
+
+        return string.Equals(
+            actualValue.ToString(),
+            expectedValue.ToString(),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private object NormalizeExpectedStateValue(object expectedValue)
+    {
+        Newtonsoft.Json.Linq.JValue jsonValue = expectedValue as Newtonsoft.Json.Linq.JValue;
+
+        if (jsonValue != null)
+            return jsonValue.Value;
+
+        Newtonsoft.Json.Linq.JToken jsonToken = expectedValue as Newtonsoft.Json.Linq.JToken;
+
+        if (jsonToken != null)
+            return jsonToken.ToString();
+
+        return expectedValue;
+    }
+
+    private bool EnumStateMatches(object actualValue, object expectedValue)
+    {
+        string expectedText = expectedValue.ToString();
+
+        if (string.Equals(
+            actualValue.ToString(),
+            expectedText,
+            StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        double expectedNumber;
+
+        if (!double.TryParse(expectedText, out expectedNumber))
+            return false;
+
+        return Math.Abs(Convert.ToDouble(actualValue) - expectedNumber) < 0.001d;
+    }
+
+    private bool BoolStateMatches(bool actualValue, object expectedValue)
+    {
+        bool expectedBool;
+
+        if (bool.TryParse(expectedValue.ToString(), out expectedBool))
+            return actualValue == expectedBool;
+
+        return false;
+    }
+
+    private bool NumericStateMatches(object actualValue, object expectedValue)
+    {
+        double expectedNumber;
+
+        if (!double.TryParse(expectedValue.ToString(), out expectedNumber))
+            return false;
+
+        return Math.Abs(Convert.ToDouble(actualValue) - expectedNumber) < 0.001d;
+    }
+
+    private bool IsNumericValue(object value)
+    {
+        return value is byte ||
+            value is sbyte ||
+            value is short ||
+            value is ushort ||
+            value is int ||
+            value is uint ||
+            value is long ||
+            value is ulong ||
+            value is float ||
+            value is double ||
+            value is decimal;
+    }
+
+    private void RecordCurrentStepActionsSafe()
+    {
+        ComponentInfo stepInfo = GetCurrentStepInfo();
+
+        if (!_evaluationActive || stepInfo == null || stepInfo.index == null)
+            return;
+
+        foreach (string objectName in stepInfo.index)
+        {
+            if (string.IsNullOrWhiteSpace(objectName))
+                continue;
+
+            string actionKey = BuildActionKey(stepInfo, objectName);
+
+            if (_completedActionKeys.Add(actionKey))
+            {
+                _safeActionKeys.Add(actionKey);
+                UpdateDerivedEvaluationMetrics();
+                LogEvaluationEvent($"Safe action completed by state check: {actionKey}");
+            }
+        }
+    }
+
     private string NormalizeQuestionType(string questionType)
     {
         if (string.IsNullOrWhiteSpace(questionType))
@@ -1343,7 +1640,32 @@ public class LatheMachineGuide : MonoBehaviour
         if (string.IsNullOrWhiteSpace(text))
             return string.Empty;
 
-        return text.Replace("**", string.Empty).Trim();
+        return AddLineBreakAfterStepHeading(
+            text.Replace("**", string.Empty).Trim());
+    }
+
+    private string AddLineBreakAfterStepHeading(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        string trimmedText = text.TrimStart();
+
+        if (!trimmedText.StartsWith("Step ", StringComparison.OrdinalIgnoreCase))
+            return text;
+
+        int colonIndex = trimmedText.IndexOf(':');
+
+        if (colonIndex < 0 || colonIndex > 20)
+            return text;
+
+        string heading = trimmedText.Substring(0, colonIndex + 1);
+        string body = trimmedText.Substring(colonIndex + 1).TrimStart();
+
+        if (string.IsNullOrWhiteSpace(body))
+            return heading;
+
+        return $"{heading}\n{body}";
     }
 
     [System.Serializable]

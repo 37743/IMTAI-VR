@@ -26,7 +26,7 @@ public class LatheDebugStateDisplay : MonoBehaviour
     public bool showTimeCounter = true;
 
     [Header("Formatting")]
-    public string trueSymbol = "✓";
+    public string trueSymbol = "o";
     public string falseSymbol = "X";
     public bool useRichTextColors = true;
     public bool blankLineBetweenSections;
@@ -259,7 +259,7 @@ public class LatheDebugStateDisplay : MonoBehaviour
     private static string FormatAngle(ResistedOneGrabRotateTransformer transformer)
     {
         return transformer != null
-            ? $"{transformer.CurrentRelativeAngle:F1}°"
+            ? $"{transformer.CurrentRelativeAngle:F1} deg"
             : "Not assigned";
     }
 
