@@ -171,7 +171,7 @@ Key script areas:
 
 ## Academic Context
 
-This repository supports the official graduation project submission (January 2026) for Egypt-Japan University of Science and Technology (E-JUST) and follows academic best practices for reproducibility, documentation, and extensibility.
+This repository supports the official graduation project submission (June 2026) for Egypt-Japan University of Science and Technology (E-JUST) and follows academic best practices for reproducibility, documentation, and extensibility.
 
 ## Credits
 
