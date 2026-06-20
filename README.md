@@ -22,7 +22,6 @@ The current training environment focuses on a bench lathe workflow, where traine
 ## Table of Contents
 
 - [Demo](#demo)
-- [Preview](#preview)
 - [Overview](#overview)
 - [Core Capabilities](#core-capabilities)
 - [Technology Stack](#technology-stack)
@@ -34,53 +33,14 @@ The current training environment focuses on a bench lathe workflow, where traine
 
 ## Demo
 
-Demo media will be added here after recording the headset walkthrough.
-
-<!--
-Recommended future demo options:
-
-### Video Walkthrough
-
-https://github.com/user-attachments/assets/your-demo-video-id
-
-### GIF Preview
-
 <p align="center">
-  <img src="docs/images/demo.gif" alt="VR IMTAI demo walkthrough" width="900">
+  <a> Google Drive Demonstration Video (~8 mins) </a>
 </p>
--->
-
-| Demo Slot | Planned Content |
-| --- | --- |
-| Headset walkthrough | End-to-end trainee flow inside the VR lathe environment. |
-| AI guidance interaction | Trainee question, retrieved response, highlighting, and spoken guidance. |
-| Evaluation flow | Task completion, safety validation, and performance feedback. |
-
-## Preview
-
-Preview images will be added here as project screenshots become available.
-
-<!--
-Uncomment these once the files are added:
-
 <p align="center">
-  <img src="docs/images/lathe-training.png" alt="Interactive lathe training scene" width="900">
+  <a href="https://drive.google.com/file/d/1pga_apT3jzBLV46MZ6rqxDW6GYnGjTcb/view">
+    <img src="demo-thumbnail.png" alt="Watch the demo" width="640">
+  </a>
 </p>
-
-<p align="center">
-  <img src="docs/images/ai-guidance.png" alt="Agentic AI guidance inside the VR scene" width="900">
-</p>
-
-<p align="center">
-  <img src="docs/images/performance-review.png" alt="VR IMTAI performance review interface" width="900">
-</p>
--->
-
-| Preview Slot | Placeholder |
-| --- | --- |
-| Training environment | `docs/images/lathe-training.png` |
-| AI guidance | `docs/images/ai-guidance.png` |
-| Performance review | `docs/images/performance-review.png` |
 
 ## Overview
 
