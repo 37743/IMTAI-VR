@@ -1,0 +1,472 @@
+{
+  "machine": "Bench-Lathe-Art-T999-230V3",
+  "components": [
+    {
+      "name": "3JawLatheSpindle",
+      "default_state": {
+        "requestSpindleOn": false,
+        "currentRPM": 0.0,
+        "targetRPM": 0.0,
+        "spindleDirection": "Forward"
+      },
+      "possible_states": {
+        "requestSpindleOn": [
+          false,
+          true
+        ],
+        "currentRPM": {
+          "type": "float",
+          "min": -2000.0,
+          "max": 2000.0,
+          "unit": "RPM",
+          "description": "Continuous runtime spindle speed."
+        },
+        "targetRPM": [
+          -2000.0,
+          -1255.0,
+          -755.0,
+          -460.0,
+          -300.0,
+          -190.0,
+          -115.0,
+          -70.0,
+          0.0,
+          70.0,
+          115.0,
+          190.0,
+          300.0,
+          460.0,
+          755.0,
+          1255.0,
+          2000.0
+        ],
+        "spindleDirection": [
+          "Reverse",
+          "Neutral",
+          "Forward"
+        ]
+      }
+    },
+    {
+      "name": "Brake2",
+      "default_state": {
+        "panelBrakeEngaged": false,
+        "brakeEngaged": false
+      },
+      "possible_states": {
+        "panelBrakeEngaged": [
+          false,
+          true
+        ],
+        "brakeEngaged": [
+          false,
+          true
+        ]
+      }
+    },
+    {
+      "name": "ControlPanel",
+      "default_state": {
+        "panelMainSwitchOn": false,
+        "panelTransmission": "Neutral",
+        "panelSpindleStartLatched": false,
+        "panelFeedDirection": "Neutral",
+        "panelSplitNutEngaged": false,
+        "panelBrakeEngaged": false
+      },
+      "possible_states": {
+        "panelMainSwitchOn": [
+          false,
+          true
+        ],
+        "panelTransmission": [
+          "Neutral",
+          "Spindle",
+          "Feed",
+          "Thread"
+        ],
+        "panelSpindleStartLatched": [
+          false,
+          true
+        ],
+        "panelFeedDirection": [
+          "Reverse",
+          "Neutral",
+          "Forward"
+        ],
+        "panelSplitNutEngaged": [
+          false,
+          true
+        ],
+        "panelBrakeEngaged": [
+          false,
+          true
+        ]
+      }
+    },
+    {
+      "name": "EmergencyStop",
+      "default_state": {
+        "emergencyStop": false
+      },
+      "possible_states": {
+        "emergencyStop": [
+          false,
+          true
+        ]
+      }
+    },
+    {
+      "name": "FeedBar2",
+      "default_state": {
+        "requestFeedOn": false,
+        "currentFeedRate": 0.0,
+        "targetFeedRate": 0.0
+      },
+      "possible_states": {
+        "requestFeedOn": [
+          false,
+          true
+        ],
+        "currentFeedRate": {
+          "type": "float",
+          "unit": "m/s",
+          "description": "Continuous runtime carriage feed rate derived from RPM, feed gearing, and feed direction."
+        },
+        "targetFeedRate": {
+          "type": "float",
+          "unit": "m/s",
+          "description": "Target feed rate derived from RPM, feed gearing, transmission mode, and feed direction."
+        }
+      }
+    },
+    {
+      "name": "FeedDirectionSelector",
+      "default_state": {
+        "panelFeedDirection": "Neutral",
+        "requestFeedOn": false,
+        "feedDirection": 0
+      },
+      "possible_states": {
+        "panelFeedDirection": [
+          "Reverse",
+          "Neutral",
+          "Forward"
+        ],
+        "requestFeedOn": [
+          false,
+          true
+        ],
+        "feedDirection": [
+          -1,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "name": "GearApplication",
+      "default_state": {
+        "panelGearAB": "A",
+        "panelGear1234": "One",
+        "panelGearCD": "C",
+        "panelGearRSTU": "S"
+      },
+      "possible_states": {
+        "panelGearAB": [
+          "A",
+          "B"
+        ],
+        "panelGear1234": [
+          "One",
+          "Two",
+          "Three",
+          "Four"
+        ],
+        "panelGearCD": [
+          "C",
+          "D"
+        ],
+        "panelGearRSTU": [
+          "R",
+          "S",
+          "T",
+          "U"
+        ]
+      }
+    },
+    {
+      "name": "LatheActivationLever",
+      "default_state": {
+        "panelSpindleStartLatched": false,
+        "requestSpindleOn": false,
+        "panelSpindleDirection": "Forward"
+      },
+      "possible_states": {
+        "panelSpindleStartLatched": [
+          false,
+          true
+        ],
+        "requestSpindleOn": [
+          false,
+          true
+        ],
+        "panelSpindleDirection": [
+          "Reverse",
+          "Neutral",
+          "Forward"
+        ]
+      }
+    },
+    {
+      "name": "MainSwitch",
+      "default_state": {
+        "panelMainSwitchOn": false,
+        "mainPower": false
+      },
+      "possible_states": {
+        "panelMainSwitchOn": [
+          false,
+          true
+        ],
+        "mainPower": [
+          false,
+          true
+        ]
+      }
+    },
+    {
+      "name": "ProtectiveDevice",
+      "default_state": {
+        "protectiveDeviceClosed": true
+      },
+      "possible_states": {
+        "protectiveDeviceClosed": [
+          false,
+          true
+        ]
+      }
+    },
+    {
+      "name": "SpeedSwitch1",
+      "default_state": {
+        "panelGearAB": "A"
+      },
+      "possible_states": {
+        "panelGearAB": [
+          "A",
+          "B"
+        ]
+      }
+    },
+    {
+      "name": "SpeedSwitch2",
+      "default_state": {
+        "panelGear1234": "One"
+      },
+      "possible_states": {
+        "panelGear1234": [
+          "One",
+          "Two",
+          "Three",
+          "Four"
+        ]
+      }
+    },
+    {
+      "name": "SpeedSwitch3",
+      "default_state": {
+        "panelGearCD": "C"
+      },
+      "possible_states": {
+        "panelGearCD": [
+          "C",
+          "D"
+        ]
+      }
+    },
+    {
+      "name": "SpeedSwitch4",
+      "default_state": {
+        "panelGearRSTU": "S"
+      },
+      "possible_states": {
+        "panelGearRSTU": [
+          "R",
+          "S",
+          "T",
+          "U"
+        ]
+      }
+    },
+    {
+      "name": "SpeedSwitchPanel",
+      "default_state": {
+        "panelGearAB": "A",
+        "panelGear1234": "One",
+        "panelGearCD": "C",
+        "panelGearRSTU": "S"
+      },
+      "possible_states": {
+        "panelGearAB": [
+          "A",
+          "B"
+        ],
+        "panelGear1234": [
+          "One",
+          "Two",
+          "Three",
+          "Four"
+        ],
+        "panelGearCD": [
+          "C",
+          "D"
+        ],
+        "panelGearRSTU": [
+          "R",
+          "S",
+          "T",
+          "U"
+        ]
+      }
+    },
+    {
+      "name": "SpindleSpeedLever1",
+      "default_state": {
+        "panelSpeedRange": "Low",
+        "speedRange": "Low"
+      },
+      "possible_states": {
+        "panelSpeedRange": [
+          "Low",
+          "High"
+        ],
+        "speedRange": [
+          "Low",
+          "High"
+        ]
+      }
+    },
+    {
+      "name": "SpindleSpeedLever2",
+      "default_state": {
+        "panelSpindleSpeedLever": "Low190High1255"
+      },
+      "possible_states": {
+        "panelSpindleSpeedLever": [
+          "Low190High1255",
+          "Low300High2000",
+          "Low115High755",
+          "Low70High460"
+        ]
+      }
+    },
+    {
+      "name": "SplitNutControlLever",
+      "default_state": {
+        "panelSplitNutEngaged": false,
+        "splitNutEngaged": false
+      },
+      "possible_states": {
+        "panelSplitNutEngaged": [
+          false,
+          true
+        ],
+        "splitNutEngaged": [
+          false,
+          true
+        ]
+      }
+    },
+    {
+      "name": "ToolLockingLever",
+      "default_state": {
+        "toolPostRotationLocked": true
+      },
+      "possible_states": {
+        "toolPostRotationLocked": [
+          false,
+          true
+        ]
+      }
+    },
+    {
+      "name": "ToolPost",
+      "default_state": {
+        "toolPostRotationLocked": true,
+        "compoundX": 0.0,
+        "crossSlideZ": 0.0
+      },
+      "possible_states": {
+        "toolPostRotationLocked": [
+          false,
+          true
+        ],
+        "compoundX": {
+          "type": "float",
+          "min": -0.08,
+          "max": 0.08,
+          "unit": "m",
+          "description": "Compound/toolpost travel."
+        },
+        "crossSlideZ": {
+          "type": "float",
+          "min": -0.1,
+          "max": 0.1,
+          "unit": "m",
+          "description": "Cross-slide travel."
+        }
+      }
+    },
+    {
+      "name": "TransmissionLever",
+      "default_state": {
+        "panelTransmission": "Neutral",
+        "transmissionMode": 0
+      },
+      "possible_states": {
+        "panelTransmission": [
+          "Neutral",
+          "Spindle",
+          "Feed",
+          "Thread"
+        ],
+        "transmissionMode": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "name": "TurningBar",
+      "default_state": {
+        "rotateTurningBarWithCarriageHandwheel": true
+      },
+      "possible_states": {
+        "rotateTurningBarWithCarriageHandwheel": [
+          false,
+          true
+        ]
+      }
+    },
+    {
+      "name": "VoltageIndicator",
+      "default_state": {
+        "mainPower": false,
+        "panelMainSwitchOn": false
+      },
+      "possible_states": {
+        "mainPower": [
+          false,
+          true
+        ],
+        "panelMainSwitchOn": [
+          false,
+          true
+        ]
+      }
+    }
+  ]
+}
